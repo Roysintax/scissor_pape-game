@@ -1,141 +1,119 @@
-# Rock Paper Scissors AI — Live Hand Gesture Recognition
+# Rock Paper Scissors AI — Live 21 Hand Landmarks & Battle Game
 
-A complete, end-to-end deep learning system and web application for real-time Rock–Paper–Scissors hand gesture recognition. Inference runs entirely in the browser using **TensorFlow.js** and a transfer-learned **MobileNetV2** model trained on the canonical Rock-Paper-Scissors dataset.
+A real-time, in-browser **Rock Paper Scissors** game powered by **MediaPipe 21 Hand Landmarks** geometric computer vision and an interactive **VS Robot Battle Arena**. Play directly against an AI robot opponent using live webcam hand gestures with zero backend latency and complete privacy.
+
+---
+
+## Screenshots & Gameplay Demo
+
+| Battle Arena Overview | Live 21 Landmarks Detection |
+| :---: | :---: |
+| ![Battle Arena Overview](docs/screenshots/01_game_overview.png) | ![Live Landmarks Detection](docs/screenshots/02_scissors_detection.png) |
+| *3-panel arena: Player, Countdown/Scoreboard, and Robot Opponent* | *Real-time 21 landmark points, skeleton overlay, and gesture confidence* |
+
+| 3-Second Battle Countdown | Victory & Scoreboard Update |
+| :---: | :---: |
+| ![Battle Countdown](docs/screenshots/04_countdown_in_progress.png) | ![Victory Banner](docs/screenshots/03_battle_win.png) |
+| *Fair 3-second countdown before locking moves* | *Instant robot move reveal, result calculation, and scoreboard tracking* |
 
 ---
 
 ## Features
 
-- **Dataset**: Laurence Moroney's canonical Rock-Paper-Scissors dataset (`randall-lab/rock-paper-scissors`).
-- **Transfer Learning Backbone**: Lightweight `MobileNetV2` with ImageNet pre-trained weights, frozen backbone, global average pooling, dropout, and a 3-class softmax classifier.
-- **In-Browser Inference**: Real-time client-side inference using TensorFlow.js with zero backend latency and no server dependency during inference.
-- **Privacy First**: All camera frames are processed 100% locally in your browser. No frames or video streams are ever uploaded to any server.
-- **Stabilized Predictions**: Sliding-window temporal probability averaging (8 frames) to eliminate visual flicker.
-- **Confidence Threshold**: Predictions with confidence below 60% are flagged as `Not Sure` to prevent false positives.
-- **Interactive UI / UX**: Modern dark-neutral aesthetic, responsive CSS grid, live probability breakdown bars for Rock, Paper, and Scissors, hand placement HUD overlay, and accessible SVG icons.
+- **MediaPipe 21 Hand Landmarks**: Tracks 21 3D hand landmarks in real-time on live webcam video without sending frames to any server.
+- **Pure Geometric Gesture Recognition**:
+  - **ROCK**: Compact fist detection using PIP/DIP joint curl angles and tip-to-palm compactness.
+  - **PAPER**: Open palm detection verifying all 5 fingers extended and fingertip-to-palm distances.
+  - **SCISSORS**: V-shape geometry measuring index/middle extension, ring/pinky folding, V-gap, and V-angle separation.
+- **VS Robot Battle Arena**:
+  - **3-Second Battle Countdown**: 3 → 2 → 1 → FIGHT! with dynamic scaling animations.
+  - **Fair & Unpredictable Opponent**: Uses `window.crypto.getRandomValues()` to choose random robot moves independently of the player.
+  - **Instant Robot Reveal**: Robot images (`robot_rock.png`, `robot_paper.png`, `robot_scissors.png`) are preloaded into browser memory for zero-latency image swapping.
+  - **Live Scoreboard**: Automatically tracks Wins, Losses, Draws, and Invalid moves.
+- **Temporal Smoothing**: Rolling 7-frame buffer to eliminate frame-to-frame gesture jitter.
+- **Geometric Telemetry Panel**: Expandable live debug panel showing joint angles, normalized tip ratios, and V-angles.
+- **100% Client-Side & Privacy First**: All inference and game logic run strictly inside your browser.
 
 ---
 
 ## Project Structure
 
 ```text
-rock-paper-scissors-live/
-├── prompt.md                # Project specifications and acceptance criteria
-├── README.md                # Documentation and setup instructions
-├── requirements.txt         # Python dependencies
-├── train.py                 # Dataset loading, training, evaluation, and export
-├── convert_to_tfjs.py       # Converts Keras model to TensorFlow.js format
-├── model/
-│   ├── rock_paper_scissors.keras  # Saved Keras model
-│   └── classes.json               # Class labels and preprocessing metadata
-└── web/
-    ├── index.html           # Web application layout
-    ├── styles.css           # Modern dark-neutral styling & design system
-    ├── app.js               # TensorFlow.js camera stream & inference logic
-    └── model/
-        ├── model.json       # Converted TF.js model topology
-        ├── *.bin            # TF.js model weights
-        └── classes.json     # Class metadata
+paper_scissor/
+├── docs/
+│   └── screenshots/             # Gameplay and UI screenshots
+│       ├── 01_game_overview.png
+│       ├── 02_scissors_detection.png
+│       ├── 03_battle_win.png
+│       └── 04_countdown_in_progress.png
+├── assets/                      # Robot opponent artwork
+│   ├── robot_rock.png
+│   ├── robot_paper.png
+│   └── robot_scissors.png
+├── web/
+│   ├── index.html               # Battle Arena layout & UI structure
+│   ├── styles.css               # Modern dark-neutral styling & design system
+│   ├── app.js                   # MediaPipe landmark tracking & game battle logic
+│   └── assets/                  # Web-accessible robot assets
+├── scratch/
+│   ├── test_geometry.js         # Landmark geometry test suite
+│   └── test_game_logic.js       # Game rules & asset test suite
+├── train.py                     # (Optional) MobileNetV2 CNN training script
+├── convert_to_tfjs.py           # (Optional) Keras to TF.js conversion script
+└── requirements.txt             # Python dependencies
 ```
-
----
-
-## Prerequisites & Installation
-
-> **Note**: TensorFlow 2.x and `tensorflowjs` are verified compatible on **Python 3.13**. If you have multiple Python versions installed on Windows, use `py -3.13`.
-
-### 1. Create and Activate Virtual Environment
-
-```bash
-# Windows
-py -3.13 -m venv .venv
-.venv\Scripts\activate
-
-# macOS / Linux
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## Training and Conversion Pipeline
-
-### 1. Train the Model
-
-The training script automatically inspects the dataset, applies stratified 80/20 train/validation splitting, data augmentation, trains MobileNetV2 with early stopping, prints classification metrics, and exports `model/rock_paper_scissors.keras`.
-
-```bash
-python train.py
-```
-
-### 2. Convert to TensorFlow.js
-
-Convert the exported Keras model into browser-compatible JSON and binary shard format:
-
-```bash
-python convert_to_tfjs.py
-```
-
-This creates `web/model/model.json` and the corresponding weight binary files (`*.bin`).
 
 ---
 
 ## Running the Web Application
 
-To run the web app, start a local HTTP server inside the `web/` directory:
+### Option 1: Using XAMPP / Apache (Recommended)
+
+If your project is located in `htdocs` (e.g. `c:\xampp\htdocs\paper_scissor`):
+1. Start Apache from the **XAMPP Control Panel**.
+2. Open your browser and visit:
+   ```text
+   http://localhost/paper_scissor/web/
+   ```
+
+### Option 2: Using Python HTTP Server
 
 ```bash
 cd web
 python -m http.server 8000
 ```
 
-Now open your browser and navigate to:
-
+Open your browser and navigate to:
 ```text
 http://localhost:8000
 ```
 
 > [!WARNING]
-> **Do not open `index.html` directly via `file://`**. Modern browsers restrict webcam access (`getUserMedia`) and fetching local model files (`model.json`) when opened via the `file://` protocol. Always use an HTTP server (e.g. `http://localhost:8000`).
+> **Do not open `index.html` directly via `file://`**. Modern browsers restrict webcam access (`getUserMedia`) and ES module loading via the `file://` protocol. Always access through an HTTP server (e.g., `http://localhost/...`).
 
 ---
 
-## Usage Guide
+## How to Play
 
-1. Allow camera permissions when prompted by your browser.
-2. Click **Start Camera** to activate the webcam stream.
-3. Place your hand inside the centered **"PLACE HAND HERE"** guide box.
-4. Form a **Rock** (fist), **Paper** (open palm), or **Scissors** (two fingers extended) gesture.
-5. Watch the real-time prediction and probability breakdown meters update live.
-6. Click **Stop Camera** to stop the webcam stream and release hardware resources.
+1. Allow webcam permissions when prompted by your browser.
+2. Click **Start Camera** to initialize MediaPipe HandLandmarker.
+3. Once the camera is active, click **Start Battle (3s)**.
+4. During the 3-second countdown (3 → 2 → 1 → FIGHT!), hold your gesture (**Rock**, **Paper**, or **Scissors**) in view of the camera.
+5. At **FIGHT!**, your gesture is locked, the robot randomly reveals its move, and the winner is calculated immediately.
+6. Check your updated score on the **Scoreboard** and click **Play Again** for another round!
 
 ---
 
-## Preprocessing Consistency
+## Geometric Recognition Rules
 
-The training pipeline uses MobileNetV2 normalization:
-$$\text{normalized} = \frac{\text{pixel}}{127.5} - 1.0 \in [-1, 1]$$
-
-The browser application in `web/app.js` mirrors this exactly using TensorFlow.js:
-```javascript
-const tensor = tf.browser.fromPixels(video)
-  .resizeBilinear([224, 224])
-  .toFloat()
-  .div(127.5)
-  .sub(1.0)
-  .expandDims(0);
-```
+| Gesture | Finger Extension | Joint Angles & Distances |
+| :--- | :--- | :--- |
+| **ROCK** | All 4 fingers curled | Index, Middle, Ring, Pinky PIP $\le 145^\circ$, Tip-to-Palm $\le 0.85$ |
+| **PAPER** | All 5 fingers extended | Index, Middle, Ring, Pinky PIP $\ge 150^\circ$, DIP $\ge 140^\circ$, Tip-to-Palm $\ge 0.88$ |
+| **SCISSORS** | Index & Middle extended, Ring & Pinky folded | V-gap $\ge 0.25$, V-angle between $10^\circ$ and $80^\circ$ |
 
 ---
 
 ## License
 
 MIT License.
-
-# scissor_pape-game
