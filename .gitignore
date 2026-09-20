@@ -1,0 +1,8 @@
+.venv/
+node_modules/
+**/node_modules/
+__pycache__/
+*.pyc
+scratch/dataset_cache/
+scratch/test_tfjs/
+.DS_Store

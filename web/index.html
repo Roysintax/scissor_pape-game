@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Rock Paper Scissors AI - Real-time in-browser hand gesture recognition using TensorFlow.js and MobileNetV2.">
+  <title>Rock Paper Scissors AI — Live Gesture Recognition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="logo-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+            <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+            <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+            <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Rock Paper Scissors AI</h1>
+          <p class="subtitle">Live 21 Hand Landmarks Geometric Recognition</p>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar" aria-label="System status">
+        <div class="status-pill" id="model-status-pill">
+          <span class="status-dot loading" id="model-dot"></span>
+          <span class="status-label">Tracker: <strong id="model-status-text">Loading...</strong></span>
+        </div>
+        <div class="status-pill" id="camera-status-pill">
+          <span class="status-dot idle" id="camera-dot"></span>
+          <span class="status-label">Camera: <strong id="camera-status-text">Inactive</strong></span>
+        </div>
+        <div class="status-pill" id="inference-status-pill">
+          <span class="status-dot idle" id="inference-dot"></span>
+          <span class="status-label">Inference: <strong id="inference-status-text">Idle</strong></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <!-- Main Content Grid / Battle Arena -->
+    <main class="main-grid battle-arena">
+      <!-- Player Card (YOU) -->
+      <section class="card player-card" aria-labelledby="player-heading">
+        <div class="card-header">
+          <div class="card-title-group">
+            <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <h2 id="player-heading">You (Player)</h2>
+          </div>
+          <span class="fps-badge" id="hand-badge">No Hand</span>
+        </div>
+
+        <div class="video-container" id="video-wrapper">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas id="output-canvas"></canvas>
+
+          <!-- Hand Placement Guide Overlay -->
+          <div class="guide-overlay" id="guide-overlay">
+            <div class="guide-box">
+              <div class="guide-corner tl"></div>
+              <div class="guide-corner tr"></div>
+              <div class="guide-corner bl"></div>
+              <div class="guide-corner br"></div>
+              <div class="guide-content">
+                <svg class="guide-hand-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+                  <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+                  <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+                  <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path>
+                </svg>
+                <span class="guide-text">PLACE HAND HERE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Inactive Placeholder -->
+          <div class="placeholder-overlay" id="placeholder-overlay">
+            <div class="placeholder-content">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 1l22 22"></path>
+                <path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              <p>Camera is stopped</p>
+              <span>Click "Start Camera" below</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Controls -->
+        <div class="camera-controls">
+          <button id="btn-start" class="btn btn-primary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            <span>Start Camera</span>
+          </button>
+          <button id="btn-stop" class="btn btn-secondary" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="6" y="6" width="12" height="12"></rect>
+            </svg>
+            <span>Stop Camera</span>
+          </button>
+        </div>
+
+        <!-- Player Move Status -->
+        <div class="player-gesture-status">
+          <div class="gesture-result-box" id="gesture-box">
+            <span class="gesture-label" id="detected-gesture">Waiting...</span>
+            <div class="confidence-badge" id="confidence-badge">
+              <span id="confidence-value">0.0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error / Info banner -->
+        <div id="camera-alert" class="alert-banner hidden" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span id="camera-alert-msg"></span>
+        </div>
+      </section>
+
+      <!-- Center Card: Battle Arena & Countdown -->
+      <section class="card battle-card" aria-labelledby="battle-heading">
+        <div class="card-header">
+          <div class="card-title-group">
+            <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            <h2 id="battle-heading">Battle Arena</h2>
+          </div>
+          <span class="fps-badge" id="round-status-pill">Ready</span>
+        </div>
+
+        <!-- Large Countdown Display -->
+        <div class="countdown-container">
+          <div class="countdown-display" id="countdown-display">VS</div>
+          <div class="countdown-hint" id="countdown-hint">Show your hand gesture to the camera!</div>
+        </div>
+
+        <!-- Battle Action Button -->
+        <button id="btn-start-round" class="btn btn-battle" disabled>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Start Battle (3s)</span>
+        </button>
+
+        <!-- Round Result Banner -->
+        <div class="round-result-banner hidden" id="round-result-banner">
+          <span class="result-title" id="result-title">YOU WIN!</span>
+          <span class="result-subtitle" id="result-subtitle">Paper beats Rock</span>
+        </div>
+
+        <!-- Scoreboard -->
+        <div class="scoreboard-card">
+          <h3 class="scoreboard-title">Scoreboard</h3>
+          <div class="score-grid">
+            <div class="score-pill win">
+              <span class="score-val" id="score-wins">0</span>
+              <span class="score-lbl">Wins</span>
+            </div>
+            <div class="score-pill lose">
+              <span class="score-val" id="score-losses">0</span>
+              <span class="score-lbl">Losses</span>
+            </div>
+            <div class="score-pill draw">
+              <span class="score-val" id="score-draws">0</span>
+              <span class="score-lbl">Draws</span>
+            </div>
+            <div class="score-pill invalid">
+              <span class="score-val" id="score-invalid">0</span>
+              <span class="score-lbl">Invalid</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Card: Robot Opponent -->
+      <section class="card robot-card" aria-labelledby="robot-heading">
+        <div class="card-header">
+          <div class="card-title-group">
+            <svg class="card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+              <circle cx="12" cy="5" r="2"></circle>
+              <path d="M12 7v4"></path>
+              <line x1="8" y1="16" x2="8.01" y2="16"></line>
+              <line x1="16" y1="16" x2="16.01" y2="16"></line>
+            </svg>
+            <h2 id="robot-heading">Robot Opponent</h2>
+          </div>
+          <span class="fps-badge" id="fps-badge">0 FPS</span>
+        </div>
+
+        <!-- Robot Display Container -->
+        <div class="robot-display-container">
+          <div class="robot-image-wrapper">
+            <img id="robot-img" src="assets/robot_rock.png" alt="Robot Hand" class="robot-img hidden">
+            <div class="robot-standby-overlay" id="robot-standby">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                <circle cx="12" cy="5" r="2"></circle>
+                <path d="M12 7v4"></path>
+                <line x1="8" y1="16" x2="8.01" y2="16"></line>
+                <line x1="16" y1="16" x2="16.01" y2="16"></line>
+              </svg>
+              <p>Robot is waiting</p>
+              <span>Will choose randomly at countdown end</span>
+            </div>
+          </div>
+
+          <div class="robot-move-badge" id="robot-move-badge">
+            <span class="robot-move-label">Robot Move:</span>
+            <strong id="robot-move-text">Waiting...</strong>
+          </div>
+        </div>
+
+        <!-- Probability Breakdown Bars -->
+        <div class="probability-section">
+          <h3 class="section-title">Player Geometric Scores</h3>
+
+          <!-- Rock -->
+          <div class="prob-row">
+            <div class="prob-header">
+              <div class="prob-name">
+                <span class="class-indicator rock-indicator"></span>
+                <span>Rock</span>
+              </div>
+              <span class="prob-value" id="prob-rock">0.0%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar rock-bar" id="bar-rock" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Paper -->
+          <div class="prob-row">
+            <div class="prob-header">
+              <div class="prob-name">
+                <span class="class-indicator paper-indicator"></span>
+                <span>Paper</span>
+              </div>
+              <span class="prob-value" id="prob-paper">0.0%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar paper-bar" id="bar-paper" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <!-- Scissors -->
+          <div class="prob-row">
+            <div class="prob-header">
+              <div class="prob-name">
+                <span class="class-indicator scissors-indicator"></span>
+                <span>Scissors</span>
+              </div>
+              <span class="prob-value" id="prob-scissors">0.0%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div class="progress-bar scissors-bar" id="bar-scissors" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Geometric Debug Telemetry Panel -->
+        <details class="debug-details">
+          <summary class="debug-summary">Geometric Telemetry (Angles & Ratios)</summary>
+          <div class="debug-content" id="debug-content">
+            <div class="debug-grid">
+              <div><strong>Index:</strong> <span id="dbg-index">--</span></div>
+              <div><strong>Middle:</strong> <span id="dbg-middle">--</span></div>
+              <div><strong>Ring:</strong> <span id="dbg-ring">--</span></div>
+              <div><strong>Pinky:</strong> <span id="dbg-pinky">--</span></div>
+              <div><strong>Thumb:</strong> <span id="dbg-thumb">--</span></div>
+              <div><strong>V-Gap / Angle:</strong> <span id="dbg-v">--</span></div>
+            </div>
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <!-- Privacy & Security Footer -->
+    <footer class="app-footer">
+      <div class="privacy-notice">
+        <svg class="privacy-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <p><strong>Privacy First:</strong> Hand landmarks are computed locally in your browser using MediaPipe. No video or images leave your machine.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

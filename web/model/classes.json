@@ -1,0 +1,10 @@
+{
+  "input_size": 224,
+  "classes": [
+    "rock",
+    "paper",
+    "scissors"
+  ],
+  "normalization": "mobilenetv2: (x / 127.5) - 1.0",
+  "val_accuracy": 0.9940476417541504
+}
